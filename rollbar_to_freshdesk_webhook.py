@@ -112,22 +112,53 @@ class RollbarHandler(http.server.BaseHTTPRequestHandler):
         level_str    = str(level) if not isinstance(level, str) else level
         project_name = item.get("project", {}).get("name", "Unknown")
         url          = item.get("public_item_url", "")
-        user_email   = (
-            item.get("last_occurrence", {})
-                .get("person", {})
-                .get("email", "rollbar@iplweb.pl")
-        )
+
+        # Extract optional person and server info
+        last_occurrence = item.get("last_occurrence", {})
+        person = last_occurrence.get("person", {})
+        server = last_occurrence.get("server", {})
+
+        user_email   = person.get("email", "rollbar@iplweb.pl")
+        person_username = person.get("username")
+        person_email = person.get("email")
+        server_hostname = server.get("host")
 
         # Build text (sanitized & limited)
         subject = sanitize_text(f"[{level_str.upper()}] {title}", SUBJECT_MAX)
-        description = sanitize_text(
-            f"Project: {project_name}\n"
-            f"Environment: {environment}\n"
-            f"Level: {level}\n"
-            f"URL: {url}\n\n"
-            f"Full payload:\n{json.dumps(data, indent=2)}",
-            DESC_MAX
-        )
+
+        # Build HTML description with proper formatting
+        description_parts = [
+            "<h3>Rollbar Error Report</h3>",
+            "<p>",
+            f"<strong>Project:</strong> {project_name}<br>",
+            f"<strong>Environment:</strong> {environment}<br>",
+            f"<strong>Level:</strong> {level}<br>",
+            f"<strong>URL:</strong> <a href='{url}'>{url}</a>",
+            "</p>"
+        ]
+
+        # Add optional person/server info if available
+        optional_info = []
+        if person_username:
+            optional_info.append(f"<strong>User:</strong> {person_username}")
+        if person_email:
+            optional_info.append(f"<strong>Email:</strong> {person_email}")
+        if server_hostname:
+            optional_info.append(f"<strong>Server:</strong> {server_hostname}")
+
+        if optional_info:
+            description_parts.append("<h4>Additional Information</h4>")
+            description_parts.append("<p>")
+            description_parts.append("<br>".join(optional_info))
+            description_parts.append("</p>")
+
+        description_parts.extend([
+            "<h4>Full Payload</h4>",
+            f"<pre>{json.dumps(data, indent=2)}</pre>"
+        ])
+
+        description_text = "".join(description_parts)
+        description = sanitize_text(description_text, DESC_MAX)
 
         # ---- Freshdesk API v2 Ticket ----
         ticket_payload = {
@@ -183,14 +214,18 @@ if __name__ == "__main__":
     )
     parser.add_argument("--host", default="127.0.0.1", help="Host to bind to (default: 127.0.0.1)")
     parser.add_argument("--port", type=int, default=9090, help="Port to listen on (default: 9090)")
-    parser.add_argument("--freshdesk-host", required=True, help="Freshdesk hostname (e.g., support.iplweb.pl)")
+    parser.add_argument(
+        "--freshdesk-subdomain",
+        required=True,
+        help="Freshdesk subdomain (e.g., iplweb for iplweb.freshdesk.com)"
+    )
     parser.add_argument("--freshdesk-token", required=True, help="Freshdesk API token")
     parser.add_argument("--freshdesk-pass", default="X", help="Freshdesk API password (default: X)")
 
     args = parser.parse_args()
 
-    # Set global configuration
-    FRESHDESK_URL = f"https://{args.freshdesk_host}/api/v2/tickets"
+    # Set global configuration - automatically append .freshdesk.com
+    FRESHDESK_URL = f"https://{args.freshdesk_subdomain}.freshdesk.com/api/v2/tickets"
     FRESHDESK_USER = args.freshdesk_token
     FRESHDESK_PASS = args.freshdesk_pass
 

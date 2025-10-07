@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:developers.freshdesk.com)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

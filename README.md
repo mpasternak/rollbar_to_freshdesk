@@ -34,7 +34,7 @@ chmod +x rollbar_to_freshdesk_webhook.py
 
 ```bash
 ./rollbar_to_freshdesk_webhook.py \
-  --freshdesk-host support.iplweb.pl \
+  --freshdesk-subdomain iplweb \
   --freshdesk-token YOUR_FRESHDESK_API_TOKEN
 ```
 
@@ -42,9 +42,11 @@ chmod +x rollbar_to_freshdesk_webhook.py
 
 - `--host` - Host to bind to (default: 127.0.0.1)
 - `--port` - Port to listen on (default: 9090)
-- `--freshdesk-host` - Freshdesk hostname (required, e.g., support.iplweb.pl)
+- `--freshdesk-subdomain` - **Freshdesk subdomain** (required, e.g., `iplweb` for `iplweb.freshdesk.com`)
 - `--freshdesk-token` - Freshdesk API token (required)
 - `--freshdesk-pass` - Freshdesk API password (default: X)
+
+**Note**: Provide only the subdomain part (e.g., `iplweb`). The code automatically appends `.freshdesk.com` to construct the API endpoint.
 
 ### Example
 
@@ -52,7 +54,7 @@ chmod +x rollbar_to_freshdesk_webhook.py
 ./rollbar_to_freshdesk_webhook.py \
   --host 127.0.0.1 \
   --port 9090 \
-  --freshdesk-host support.iplweb.pl \
+  --freshdesk-subdomain iplweb \
   --freshdesk-token GlmPiXsB-Ms-Cfwl0rJd
 ```
 
@@ -130,7 +132,7 @@ Type=simple
 User=www-data
 WorkingDirectory=/opt/rollbar_webhook
 ExecStart=/usr/bin/python3 /opt/rollbar_webhook/rollbar_to_freshdesk_webhook.py \
-    --freshdesk-host support.iplweb.pl \
+    --freshdesk-subdomain iplweb \
     --freshdesk-token YOUR_FRESHDESK_API_TOKEN
 Restart=always
 RestartSec=10
