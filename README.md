@@ -10,6 +10,12 @@ This webhook server:
 - Creates a corresponding ticket in Freshdesk via API
 - Returns immediately to Rollbar (always returns 200 OK)
 
+## Design Philosophy
+
+This code is intentionally written using **only Python standard library** with zero external dependencies. No pip install required, no virtualenv needed - just Python 3.10+.
+
+**Note**: This code would be significantly cleaner and easier to read using Flask for the server and requests for HTTP calls. However, the stdlib-only approach was chosen for maximum portability and minimal deployment complexity. You can drop this single file on any server with Python and it just works.
+
 ## Requirements
 
 - Python 3.10+ (uses only standard library)
