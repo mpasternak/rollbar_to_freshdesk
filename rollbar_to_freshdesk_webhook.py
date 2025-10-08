@@ -17,7 +17,7 @@ FRESHDESK_URL = None
 FRESHDESK_USER = None
 FRESHDESK_PASS = None
 REPORTER_EMAIL = None
-DEFAULT_REQUESTER_ID = None
+DEFAULT_UNIQUE_EXTERNAL_ID = None
 
 def sanitize_text(s: str, limit: int | None = None) -> str:
     """Make text printable UTF-8 and optionally trim to 'limit' chars."""
@@ -173,11 +173,11 @@ class RollbarHandler(http.server.BaseHTTPRequestHandler):
             # Add "group_id", "agent_id", "company_id", "custom_fields": {...} if needed
         }
 
-        # Set requester: prefer email, fallback to requester_id
+        # Set requester: prefer email, fallback to unique_external_id
         if user_email:
             ticket_payload["email"] = user_email
-        elif DEFAULT_REQUESTER_ID is not None:
-            ticket_payload["requester_id"] = DEFAULT_REQUESTER_ID
+        else:
+            ticket_payload["unique_external_id"] = DEFAULT_UNIQUE_EXTERNAL_ID or "31337"
 
         # ---- Send to Freshdesk v2 ----
         auth = base64.b64encode(f"{FRESHDESK_USER}:{FRESHDESK_PASS}".encode()).decode()
@@ -229,7 +229,7 @@ if __name__ == "__main__":
     parser.add_argument("--freshdesk-token", required=True, help="Freshdesk API token")
     parser.add_argument("--freshdesk-pass", default="X", help="Freshdesk API password (default: X)")
     parser.add_argument("--reporter-email", help="Default reporter email (fallback if not in POST data)")
-    parser.add_argument("--default-requester-id", type=int, help="Default Freshdesk requester ID (used when no email available)")
+    parser.add_argument("--default-unique-external-id", help="Default Freshdesk unique_external_id (default: 31337, used when no email available)")
 
     args = parser.parse_args()
 
@@ -238,7 +238,7 @@ if __name__ == "__main__":
     FRESHDESK_USER = args.freshdesk_token
     FRESHDESK_PASS = args.freshdesk_pass
     REPORTER_EMAIL = args.reporter_email
-    DEFAULT_REQUESTER_ID = args.default_requester_id
+    DEFAULT_UNIQUE_EXTERNAL_ID = args.default_unique_external_id
 
     server = http.server.HTTPServer((args.host, args.port), RollbarHandler)
     print(f"🚀 Listening on http://{args.host}:{args.port}/rollbar ... (Ctrl+C to stop)")
