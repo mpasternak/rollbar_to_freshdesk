@@ -16,6 +16,7 @@ DESC_MAX    = 10_000  # practical safety cap
 FRESHDESK_URL = None
 FRESHDESK_USER = None
 FRESHDESK_PASS = None
+REPORTER_EMAIL = None
 
 def sanitize_text(s: str, limit: int | None = None) -> str:
     """Make text printable UTF-8 and optionally trim to 'limit' chars."""
@@ -118,7 +119,7 @@ class RollbarHandler(http.server.BaseHTTPRequestHandler):
         person = last_occurrence.get("person", {})
         server = last_occurrence.get("server", {})
 
-        user_email   = person.get("email", "rollbar@iplweb.pl")
+        user_email   = person.get("email", REPORTER_EMAIL or "")
         person_username = person.get("username")
         person_email = person.get("email")
         server_hostname = server.get("host")
@@ -221,6 +222,7 @@ if __name__ == "__main__":
     )
     parser.add_argument("--freshdesk-token", required=True, help="Freshdesk API token")
     parser.add_argument("--freshdesk-pass", default="X", help="Freshdesk API password (default: X)")
+    parser.add_argument("--reporter-email", help="Default reporter email (fallback if not in POST data)")
 
     args = parser.parse_args()
 
@@ -228,6 +230,7 @@ if __name__ == "__main__":
     FRESHDESK_URL = f"https://{args.freshdesk_subdomain}.freshdesk.com/api/v2/tickets"
     FRESHDESK_USER = args.freshdesk_token
     FRESHDESK_PASS = args.freshdesk_pass
+    REPORTER_EMAIL = args.reporter_email
 
     server = http.server.HTTPServer((args.host, args.port), RollbarHandler)
     print(f"🚀 Listening on http://{args.host}:{args.port}/rollbar ... (Ctrl+C to stop)")
