@@ -114,6 +114,9 @@ class RollbarHandler(http.server.BaseHTTPRequestHandler):
         level_str    = str(level) if not isinstance(level, str) else level
         project_name = item.get("project", {}).get("name", "Unknown")
         url          = item.get("public_item_url", "")
+        # Fallback to data.url if public_item_url is not present
+        if not url:
+            url = data.get("data", {}).get("url", "")
 
         # Extract optional person and server info
         last_occurrence = item.get("last_occurrence", {})
