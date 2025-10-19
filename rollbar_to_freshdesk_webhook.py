@@ -18,6 +18,7 @@ FRESHDESK_USER = None
 FRESHDESK_PASS = None
 REPORTER_EMAIL = None
 DEFAULT_UNIQUE_EXTERNAL_ID = None
+REQUIRE_USER = None
 
 def sanitize_text(s: str, limit: int | None = None) -> str:
     """Make text printable UTF-8 and optionally trim to 'limit' chars."""
@@ -128,6 +129,12 @@ class RollbarHandler(http.server.BaseHTTPRequestHandler):
         person_email = person.get("email")
         server_hostname = server.get("host")
 
+        # Check if user identification is required
+        if REQUIRE_USER and not person_email and not person_username:
+            # No identifiable user - skip ticket creation
+            self._send_json({})
+            return
+
         # Build text (sanitized & limited)
         subject = sanitize_text(f"[{level_str.upper()}] {title}", SUBJECT_MAX)
 
@@ -233,6 +240,11 @@ if __name__ == "__main__":
     parser.add_argument("--freshdesk-pass", default="X", help="Freshdesk API password (default: X)")
     parser.add_argument("--reporter-email", help="Default reporter email (fallback if not in POST data)")
     parser.add_argument("--default-unique-external-id", help="Default Freshdesk unique_external_id (default: 31337, used when no email available)")
+    parser.add_argument(
+        "--require-user",
+        action="store_true",
+        help="Only create Freshdesk tickets when an identifiable user exists (person.email or person.username). System/internal exceptions without user context will be ignored."
+    )
 
     args = parser.parse_args()
 
@@ -242,6 +254,7 @@ if __name__ == "__main__":
     FRESHDESK_PASS = args.freshdesk_pass
     REPORTER_EMAIL = args.reporter_email
     DEFAULT_UNIQUE_EXTERNAL_ID = args.default_unique_external_id
+    REQUIRE_USER = args.require_user
 
     server = http.server.HTTPServer((args.host, args.port), RollbarHandler)
     print(f"🚀 Listening on http://{args.host}:{args.port}/rollbar ... (Ctrl+C to stop)")
